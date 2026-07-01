@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">NotesMd</string>
+    <string name="all_notes">All Notes</string>
+    <string name="just_now">Just now</string>
+    <string name="hours_ago">%1$d hours ago</string>
+    <string name="search">Search...</string>
+    <string name="button_add">Button add</string>
+    <string name="add_note">Add note</string>
+</resources>
