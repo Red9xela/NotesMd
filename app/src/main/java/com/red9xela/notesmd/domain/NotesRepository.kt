@@ -10,7 +10,7 @@ interface NotesRepository {
 
     fun getAllNotes(): Flow<List<Note>>
 
-    suspend fun getNote(noteId: Int): Note?
+    suspend fun getNote(noteId: Int): Note
 
     fun searchNotes(query: String): Flow<List<Note>>
 

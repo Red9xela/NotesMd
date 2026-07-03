@@ -18,7 +18,7 @@ interface NotesDao {
     fun getAllNotes(): Flow<List<NoteDbModel>>
 
     @Query("SELECT * FROM notes WHERE id = :noteId")
-    fun getNote(noteId: Int): NoteDbModel?
+    suspend fun getNote(noteId: Int): NoteDbModel
 
     @Query(
         """SELECT * FROM notes WHERE title LIKE '%' || :query || '%' OR content LIKE '%' 
