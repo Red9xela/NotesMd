@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
@@ -32,10 +34,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.room.util.TableInfo
 import com.red9xela.notesmd.R
 import com.red9xela.notesmd.domain.Note
+import com.red9xela.notesmd.presentation.utils.DateFormatter
 
 @Composable
 fun NotesScreen(
@@ -204,7 +210,43 @@ private fun Subtitle(
 }
 
 @Composable
-private fun NoteCard() {
+private fun NoteCard(
+    modifier: Modifier,
+    note: Note,
+    backgroundColor: Color,
+    onNoteClick: (Note) -> Unit,
+    onLongClick: (Note) -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(backgroundColor)
+            .combinedClickable(
+                onClick = {
+                    onNoteClick(note)
+                },
+                onLongClick = {
+                    onLongClick(note)
+                }
+            )
+            .padding(16.dp)
+    )
+    {
+        Text(
+            text = note.title,
+            fontSize = 14.sp,
+            maxLines = 1,
+            color = MaterialTheme.colorScheme.onSurface,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = DateFormatter.formatDateToString(note.updatedAt),
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 
