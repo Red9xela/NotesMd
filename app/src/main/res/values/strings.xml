@@ -6,4 +6,9 @@
     <string name="search">Search...</string>
     <string name="button_add">Button add</string>
     <string name="add_note">Add note</string>
+    <string name="today">Today</string>
+    <string name="previous_7_days">Previous 7 days</string>
+    <string name="previous_30_days">Previous 30 days</string>
+    <string name="older_notes">Older 30 days</string>
+    <string name="pinned">Pinned</string>
 </resources>

@@ -49,14 +49,19 @@ class NotesViewModel @Inject constructor(
                 val now = System.currentTimeMillis()
                 val pinnedNotes = notes.filter { it.isPinned }
 
+                val todayMillis = TimeUnit.DAYS.toMillis(1)
                 val sevenDaysMillis = TimeUnit.DAYS.toMillis(7)
                 val thirtyDaysMillis = TimeUnit.DAYS.toMillis(30)
 
                 val unpinnedNotes = notes.filter { !it.isPinned }
 
+                val todayNotes = unpinnedNotes.filter { note ->
+                    val diff = now - note.updatedAt
+                    diff < todayMillis
+                }
                 val previousSevenDays = unpinnedNotes.filter { note ->
                     val diff = now - note.updatedAt
-                    diff < sevenDaysMillis
+                    diff in todayMillis until sevenDaysMillis
                 }
                 val previousThirtyDays = unpinnedNotes.filter { note ->
                     val diff = now - note.updatedAt
@@ -71,6 +76,7 @@ class NotesViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         pinnedNotes = pinnedNotes,
+                        todayNotes = todayNotes,
                         previousSevenDays = previousSevenDays,
                         previousThirtyDays = previousThirtyDays,
                         olderNotes = olderNotes
@@ -105,6 +111,7 @@ sealed interface NotesCommand {
 data class NotesScreenState(
     val query: String = "",
     val pinnedNotes: List<Note> = listOf(),
+    val todayNotes : List <Note> = listOf(),
     val previousSevenDays: List<Note> = listOf(),
     val previousThirtyDays: List<Note> = listOf(),
     val olderNotes: List<Note> = listOf(),

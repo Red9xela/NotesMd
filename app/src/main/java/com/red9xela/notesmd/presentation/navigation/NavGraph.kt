@@ -22,8 +22,10 @@ fun NavGraph() {
     ) {
         composable(Screen.Notes.route) {
             NotesScreen(
-                onNoteClick = {},
-                onAddNoteClick = {}
+                onNoteClick = { navController.navigate(Screen.EditNote.createRoute(it.id)) },
+                onAddNoteClick = {
+                    navController.navigate(Screen.CreateNote.route)
+                }
             )
         }
         composable(
@@ -32,14 +34,25 @@ fun NavGraph() {
                 type = NavType.IntType
             })
         ) {
-            EditScreen()
+            val noteId = Screen.EditNote.getNoteId(it.arguments)
+            EditScreen(
+                noteId = noteId,
+                onFinished = {
+                    navController.popBackStack()
+                })
         }
         composable(Screen.Folders.route) {
             FoldersScreen(
 
             )
         }
-
+        composable(Screen.CreateNote.route) {
+            EditScreen(
+                noteId = -1,
+                onFinished = {
+                    navController.popBackStack()
+                })
+        }
     }
 
 }
@@ -47,10 +60,14 @@ fun NavGraph() {
 sealed class Screen(val route: String) {
     data object Notes : Screen(route = "notes")
     data object Folders : Screen(route = "folders")
+    data object CreateNote : Screen(route = "create_note")
     data object EditNote : Screen(route = "edit_note/{note_id}") {
         fun createRoute(noteId: Int): String {
             return "edit_note/$noteId"
         }
 
+        fun getNoteId(arguments: Bundle?): Int {
+            return arguments?.getString("note_id")?.toInt() ?: 0
+        }
     }
 }
