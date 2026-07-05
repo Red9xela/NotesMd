@@ -21,14 +21,16 @@ class EditScreenViewModel @Inject constructor(
     private val deleteNoteUseCase: DeleteNoteUseCase,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
-    private val noteId = checkNotNull(
-        savedStateHandle.get<Int>("note_id")
-    )
+    private val noteId = savedStateHandle.get<Int>("note_id") ?: -1
+
+    private val isNewNote: Boolean = noteId == -1
     private val _state = MutableStateFlow(EditNoteState())
     val state = _state.asStateFlow()
 
     init {
-        loadNote()
+        if (!isNewNote) {
+            loadNote()
+        }
     }
 
     private fun loadNote() {
@@ -42,7 +44,6 @@ class EditScreenViewModel @Inject constructor(
                     markdownContent = note.markdownContent,
                     updatedAt = note.updatedAt,
                     isPinned = note.isPinned,
-                    isLoading = false
                 )
             }
         }
@@ -50,12 +51,21 @@ class EditScreenViewModel @Inject constructor(
 
     fun processCommand(command: EditNoteCommand) {
         when (command) {
-            EditNoteCommand.Back -> _state.update { it.copy(isFinished = true) }
+            EditNoteCommand.Back -> _state.update {
+                it.copy(isFinished = true)
+            }
+
             EditNoteCommand.Delete -> {
-                viewModelScope.launch {
-                    deleteNoteUseCase(id = state.value.noteId)
+                if (isNewNote) {
                     _state.update {
                         it.copy(isFinished = true)
+                    }
+                } else {
+                    viewModelScope.launch {
+                        deleteNoteUseCase(id = state.value.noteId)
+                        _state.update {
+                            it.copy(isFinished = true)
+                        }
                     }
                 }
             }
@@ -65,7 +75,7 @@ class EditScreenViewModel @Inject constructor(
                     val currentState = state.value
                     editNotesUseCase(
                         Note(
-                            id = currentState.noteId,
+                            id = if (isNewNote) 0 else currentState.noteId,
                             title = currentState.title,
                             markdownContent = currentState.markdownContent,
                             updatedAt = System.currentTimeMillis(),
@@ -98,7 +108,6 @@ data class EditNoteState(
     val markdownContent: String = "",
     val updatedAt: Long = 0L,
     val isPinned: Boolean = false,
-    val isLoading: Boolean = true,
     val isFinished: Boolean = false
 ) {
     val isSaveEnabled: Boolean

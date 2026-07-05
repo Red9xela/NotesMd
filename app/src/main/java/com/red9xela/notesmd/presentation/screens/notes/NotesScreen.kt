@@ -1,6 +1,9 @@
 package com.red9xela.notesmd.presentation.screens.notes
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,36 +12,36 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.Icon
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.room.util.TableInfo
 import com.red9xela.notesmd.R
 import com.red9xela.notesmd.domain.Note
 import com.red9xela.notesmd.presentation.utils.DateFormatter
@@ -77,6 +80,11 @@ fun NotesScreen(
             }
         },
     ) { paddingValues ->
+        val todayTitle = stringResource(R.string.today)
+        val previous7DaysTitle = stringResource(R.string.previous_7_days)
+        val previous30DaysTitle = stringResource(R.string.previous_30_days)
+        val olderNotesTitle = stringResource(R.string.older_notes)
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -86,34 +94,62 @@ fun NotesScreen(
             item {
                 Title(text = stringResource(R.string.all_notes))
             }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            item {
-                PinnedNotes()
-            }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            item {
-                PreviousSevenDaysNotes()
-            }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            item {
-                PreviousThirtyDaysNotes()
-            }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            item {
-                OlderThanThirtyDaysNotes()
-            }
+            notesSection(
+                title = todayTitle,
+                notes = state.todayNotes,
+                onNoteClick = onNoteClick,
+                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) }
+            )
+            notesSection(
+                title = previous7DaysTitle,
+                notes = state.previousSevenDays,
+                onNoteClick = onNoteClick,
+                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) }
+            )
+            notesSection(
+                title = previous30DaysTitle,
+                notes = state.previousThirtyDays,
+                onNoteClick = onNoteClick,
+                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) }
+            )
+            notesSection(
+                title = olderNotesTitle,
+                notes = state.olderNotes,
+                onNoteClick = onNoteClick,
+                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) }
+            )
         }
-
     }
 }
+
+private fun LazyListScope.notesSection(
+    title: String,
+    notes: List<Note>,
+    onNoteClick: (Note) -> Unit,
+    onLongClick: (Note) -> Unit
+) {
+    if (notes.isEmpty()) return
+
+    item {
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+
+    item {
+        Subtitle(text = title)
+    }
+    item {
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+
+    item {
+        NotesGroupCard(
+            notes = notes,
+            onNoteClick = onNoteClick,
+            onLongClick = onLongClick
+        )
+    }
+}
+
 
 @Composable
 private fun SearchBar(
@@ -151,7 +187,7 @@ private fun SearchBar(
                 tint = MaterialTheme.colorScheme.onSurface
             )
         },
-        shape = RoundedCornerShape(10)
+        shape = RoundedCornerShape(16.dp)
     )
 }
 
@@ -211,16 +247,14 @@ private fun Subtitle(
 
 @Composable
 private fun NoteCard(
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     note: Note,
-    backgroundColor: Color,
     onNoteClick: (Note) -> Unit,
     onLongClick: (Note) -> Unit,
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(backgroundColor)
+            .fillMaxWidth()
             .combinedClickable(
                 onClick = {
                     onNoteClick(note)
@@ -232,13 +266,28 @@ private fun NoteCard(
             .padding(16.dp)
     )
     {
-        Text(
-            text = note.title,
-            fontSize = 14.sp,
-            maxLines = 1,
-            color = MaterialTheme.colorScheme.onSurface,
-            overflow = TextOverflow.Ellipsis
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                modifier = Modifier.weight(1f),
+                text = note.title,
+                fontSize = 14.sp,
+                maxLines = 1,
+                color = MaterialTheme.colorScheme.onSurface,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            if (note.isPinned) {
+                Icon(
+                    imageVector = Icons.Filled.PushPin,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -251,19 +300,31 @@ private fun NoteCard(
 
 
 @Composable
-private fun PinnedNotes(modifier: Modifier = Modifier) {
-
+fun NotesGroupCard(
+    notes: List<Note>,
+    onNoteClick: (Note) -> Unit,
+    onLongClick: (Note) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        notes.forEachIndexed { index, note ->
+            NoteCard(
+                note = note,
+                onNoteClick = onNoteClick,
+                onLongClick = onLongClick
+            )
+            if (index < notes.lastIndex) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp),
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
 }
 
-@Composable
-private fun PreviousSevenDaysNotes(modifier: Modifier = Modifier) {
-}
-
-@Composable
-private fun PreviousThirtyDaysNotes(modifier: Modifier = Modifier) {
-}
-
-@Composable
-private fun OlderThanThirtyDaysNotes(modifier: Modifier = Modifier) {
-
-}
