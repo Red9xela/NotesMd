@@ -27,5 +27,5 @@ interface NotesDao {
     fun searchNotes(query: String): Flow<List<NoteDbModel>>
 
     @Query("UPDATE notes SET isPinned = NOT isPinned WHERE id == :noteId")
-    fun switchPinnedStatus(noteId: Int)
+    suspend fun switchPinnedStatus(noteId: Int)
 }
