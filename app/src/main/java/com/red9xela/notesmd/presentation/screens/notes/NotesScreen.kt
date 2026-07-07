@@ -3,6 +3,7 @@ package com.red9xela.notesmd.presentation.screens.notes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -56,6 +57,7 @@ fun NotesScreen(
     val state by viewModel.state.collectAsState()
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
         bottomBar = {
             Row(
                 modifier = Modifier
@@ -80,6 +82,7 @@ fun NotesScreen(
             }
         },
     ) { paddingValues ->
+        val pinnedTitle = stringResource(R.string.pinned)
         val todayTitle = stringResource(R.string.today)
         val previous7DaysTitle = stringResource(R.string.previous_7_days)
         val previous30DaysTitle = stringResource(R.string.previous_30_days)
@@ -92,8 +95,17 @@ fun NotesScreen(
             contentPadding = paddingValues
         ) {
             item {
-                Title(text = stringResource(R.string.all_notes))
+                Title(
+                    modifier = modifier.padding(top = 24.dp),
+                    text = stringResource(R.string.all_notes)
+                )
             }
+            notesSection(
+                title = pinnedTitle,
+                notes = state.pinnedNotes,
+                onNoteClick = onNoteClick,
+                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) }
+            )
             notesSection(
                 title = todayTitle,
                 notes = state.todayNotes,
@@ -133,14 +145,13 @@ private fun LazyListScope.notesSection(
     item {
         Spacer(modifier = Modifier.height(16.dp))
     }
-
     item {
         Subtitle(text = title)
     }
+
     item {
         Spacer(modifier = Modifier.height(16.dp))
     }
-
     item {
         NotesGroupCard(
             notes = notes,
@@ -274,6 +285,7 @@ private fun NoteCard(
                 modifier = Modifier.weight(1f),
                 text = note.title,
                 fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 color = MaterialTheme.colorScheme.onSurface,
                 overflow = TextOverflow.Ellipsis
@@ -290,11 +302,24 @@ private fun NoteCard(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = DateFormatter.formatDateToString(note.updatedAt),
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+        ) {
+            Text(
+                text = DateFormatter.formatDateToString(note.updatedAt),
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.padding(horizontal = 8.dp))
+            Text(
+                text = note.markdownContent,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
@@ -309,7 +334,7 @@ fun NotesGroupCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         notes.forEachIndexed { index, note ->
             NoteCard(
@@ -321,7 +346,7 @@ fun NotesGroupCard(
                 HorizontalDivider(
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp),
                     thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.outlineVariant
                 )
             }
         }

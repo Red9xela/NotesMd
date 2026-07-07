@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -25,6 +24,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -48,6 +47,7 @@ fun EditScreen(
     onFinished: () -> Unit
 ) {
     val state = viewModel.state.collectAsState()
+
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(state.value.isFinished) {
@@ -57,7 +57,9 @@ fun EditScreen(
     }
 
     LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
+        if (noteId == -1) {
+            focusRequester.requestFocus()
+        }
     }
 
     Scaffold(
@@ -81,13 +83,14 @@ fun EditScreen(
                 SaveNoteButton(
                     onClick = {
                         viewModel.processCommand(EditNoteCommand.Save)
-                    })
+                    },
+                    state = state
+                )
             }
 
         }
     ) { paddingValues ->
         Column(modifier = modifier.padding(paddingValues)) {
-            val textState = remember { mutableStateOf("") }
             TextField(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -96,7 +99,6 @@ fun EditScreen(
                 onValueChange = {
                     viewModel.processCommand(EditNoteCommand.InputTitle(it))
                 },
-                maxLines = 1,
                 colors = TextFieldDefaults.colors(
                     cursorColor = MaterialTheme.colorScheme.primary,
                     focusedTextColor = Color.Transparent,
@@ -111,9 +113,6 @@ fun EditScreen(
                     fontSize = 24.sp
                 )
             )
-
-            Spacer(modifier.padding(horizontal = 16.dp))
-
             Content(
                 modifier = Modifier
                     .weight(1f),
@@ -178,8 +177,10 @@ private fun SettingsBar(
 @Composable
 private fun SaveNoteButton(
     modifier: Modifier = Modifier,
+    state: State<EditNoteState>,
     onClick: () -> Unit
 ) {
+    val currentState = state.value.isSaveEnabled
     FilledIconButton(
         onClick = onClick,
         modifier = modifier
@@ -189,6 +190,7 @@ private fun SaveNoteButton(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 shape = CircleShape
             ),
+        enabled = currentState,
         colors = IconButtonDefaults.filledIconButtonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onSurface
