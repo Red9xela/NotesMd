@@ -11,4 +11,5 @@
     <string name="previous_30_days">Previous 30 days</string>
     <string name="older_notes">Older 30 days</string>
     <string name="pinned">Pinned</string>
+    <string name="pin_icon">Pin icon</string>
 </resources>

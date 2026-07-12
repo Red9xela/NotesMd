@@ -294,7 +294,7 @@ private fun NoteCard(
             if (note.isPinned) {
                 Icon(
                     imageVector = Icons.Filled.PushPin,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.pin_icon),
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )

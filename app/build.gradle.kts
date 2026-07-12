@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.red9xela.notesmd"
     compileSdk {
-        version = release(36) {
+        version = release(37) {
             minorApiLevel = 1
         }
     }
@@ -16,8 +16,7 @@ android {
     defaultConfig {
         applicationId = "com.red9xela.notesmd"
         minSdk = 26
-        //noinspection OldTargetApi
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 
@@ -55,7 +54,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     implementation(libs.androidx.navigation.compose)
-
+    implementation(libs.richtext.commonmark)
     implementation(libs.richtext.ui.material3)
     implementation(libs.richtext.markdown)
     implementation(libs.androidx.room.runtime)

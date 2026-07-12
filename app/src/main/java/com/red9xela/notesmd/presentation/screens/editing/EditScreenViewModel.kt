@@ -97,6 +97,12 @@ class EditScreenViewModel @Inject constructor(
                     it.copy(title = command.title)
                 }
             }
+
+            EditNoteCommand.ChangeMode -> {
+                _state.update {
+                    it.copy(isEditMode = !it.isEditMode)
+                }
+            }
         }
 
     }
@@ -108,7 +114,8 @@ data class EditNoteState(
     val markdownContent: String = "",
     val updatedAt: Long = 0L,
     val isPinned: Boolean = false,
-    val isFinished: Boolean = false
+    val isFinished: Boolean = false,
+    val isEditMode: Boolean = true
 ) {
     val isSaveEnabled: Boolean
         get() = title.isNotBlank() &&
@@ -121,6 +128,7 @@ sealed interface EditNoteCommand {
     data object Save : EditNoteCommand
     data object Back : EditNoteCommand
     data object Delete : EditNoteCommand
+    data object ChangeMode : EditNoteCommand
 }
 
 
