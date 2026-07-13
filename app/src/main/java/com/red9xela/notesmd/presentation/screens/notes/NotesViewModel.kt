@@ -4,9 +4,11 @@ package com.red9xela.notesmd.presentation.screens.notes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
 import com.red9xela.notesmd.domain.GetAllNotesUseCase
 import com.red9xela.notesmd.domain.Note
 import com.red9xela.notesmd.domain.SearchNotesUseCase
+import com.red9xela.notesmd.domain.SettingsRepository
 import com.red9xela.notesmd.domain.SwitchPinnedStatusUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,12 +26,19 @@ import javax.inject.Inject
 class NotesViewModel @Inject constructor(
     private val getAllNotesUseCase: GetAllNotesUseCase,
     private val searchNotesUseCase: SearchNotesUseCase,
-    private val switchPinnedStatusUseCase: SwitchPinnedStatusUseCase
+    private val switchPinnedStatusUseCase: SwitchPinnedStatusUseCase,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val _state = MutableStateFlow(NotesScreenState())
     val state = _state.asStateFlow()
 
+    init {
+        settingsRepository.folderUri.onEach { uri ->
+            _state.update { it.copy(folderUri = uri)
+            }
+        }.launchIn(viewModelScope)
+    }
 
     init {
         query
@@ -86,7 +95,12 @@ class NotesViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    //
+    fun saveFolderUri(uri: Uri) {
+        viewModelScope.launch {
+            settingsRepository.saveFolderUri(uri.toString())
+        }
+    }
+    
     fun processCommand(command: NotesCommand) {
         viewModelScope.launch {
             when (command) {
@@ -97,22 +111,27 @@ class NotesViewModel @Inject constructor(
                 is NotesCommand.SwitchPinnedStatus -> {
                     switchPinnedStatusUseCase(command.noteId)
                 }
+
+                is NotesCommand.SaveSelectedFolder -> {
+                    saveFolderUri(uri = command.uri)
+                }
             }
         }
-
     }
 }
 
 sealed interface NotesCommand {
     data class SwitchPinnedStatus(val noteId: Int) : NotesCommand
     data class InputSearchQuery(val query: String) : NotesCommand
+    data class SaveSelectedFolder(val uri: Uri) : NotesCommand
 }
 
 data class NotesScreenState(
     val query: String = "",
     val pinnedNotes: List<Note> = listOf(),
-    val todayNotes : List <Note> = listOf(),
+    val todayNotes: List<Note> = listOf(),
     val previousSevenDays: List<Note> = listOf(),
     val previousThirtyDays: List<Note> = listOf(),
     val olderNotes: List<Note> = listOf(),
+    val folderUri: String? = null
 )

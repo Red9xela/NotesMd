@@ -1,10 +1,15 @@
 package com.red9xela.notesmd.presentation.screens.notes
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,13 +19,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -37,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,6 +53,7 @@ import com.red9xela.notesmd.R
 import com.red9xela.notesmd.domain.Note
 import com.red9xela.notesmd.presentation.utils.DateFormatter
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun NotesScreen(
     modifier: Modifier = Modifier,
@@ -54,7 +61,9 @@ fun NotesScreen(
     onNoteClick: (Note) -> Unit,
     onAddNoteClick: () -> Unit
 ) {
+
     val state by viewModel.state.collectAsState()
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -76,9 +85,7 @@ fun NotesScreen(
 
                 Spacer(modifier = Modifier.padding(horizontal = 8.dp))
 
-                AddNoteButton(
-                    onClick = onAddNoteClick
-                )
+                AddNoteButton(onClick = onAddNoteClick)
             }
         },
     ) { paddingValues ->
@@ -88,17 +95,35 @@ fun NotesScreen(
         val previous30DaysTitle = stringResource(R.string.previous_30_days)
         val olderNotesTitle = stringResource(R.string.older_notes)
 
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp),
             contentPadding = paddingValues
         ) {
+
             item {
                 Title(
                     modifier = modifier.padding(top = 24.dp),
                     text = stringResource(R.string.all_notes)
                 )
+            }
+
+            if (state.folderUri == null) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillParentMaxSize()
+                            .padding(bottom = paddingValues.calculateBottomPadding()),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        FolderPickerScreen(modifier = modifier) { uri ->
+                            viewModel.processCommand(NotesCommand.SaveSelectedFolder(uri))
+                        }
+                    }
+                }
             }
             notesSection(
                 title = pinnedTitle,
@@ -353,3 +378,45 @@ fun NotesGroupCard(
     }
 }
 
+@Composable
+fun FolderPickerScreen(
+    modifier: Modifier,
+    onFolderSelected: (Uri) -> Unit
+) {
+    val context = LocalContext.current
+
+    val launcher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocumentTree()) { uri ->
+            if (uri != null) {
+                val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                context.contentResolver.takePersistableUriPermission(uri, takeFlags)
+                onFolderSelected(uri)
+            }
+        }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = stringResource(R.string.where_should_you_keep_your_notes),
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+        Text(
+            text = stringResource(R.string.select_the_folder_on_your_device_where_your_markdown_files_are_or_will_be_located),
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+        Button(onClick = { launcher.launch(null) }) {
+            Text(stringResource(R.string.choose_folder))
+        }
+    }
+}
