@@ -22,7 +22,6 @@ class EditScreenViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val noteId = savedStateHandle.get<Int>("note_id") ?: -1
-
     private val isNewNote: Boolean = noteId == -1
     private val _state = MutableStateFlow(EditNoteState())
     val state = _state.asStateFlow()

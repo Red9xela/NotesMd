@@ -2,41 +2,85 @@
 
 package com.red9xela.notesmd.presentation.screens.notes
 
+import android.content.Context
+import android.database.ContentObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import android.net.Uri
 import com.red9xela.notesmd.domain.GetAllNotesUseCase
 import com.red9xela.notesmd.domain.Note
+import com.red9xela.notesmd.domain.NotesRepository
 import com.red9xela.notesmd.domain.SearchNotesUseCase
 import com.red9xela.notesmd.domain.SettingsRepository
 import com.red9xela.notesmd.domain.SwitchPinnedStatusUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import androidx.core.net.toUri
+import android.provider.DocumentsContract
+import kotlinx.coroutines.channels.awaitClose
 
 @HiltViewModel
 class NotesViewModel @Inject constructor(
     private val getAllNotesUseCase: GetAllNotesUseCase,
     private val searchNotesUseCase: SearchNotesUseCase,
     private val switchPinnedStatusUseCase: SwitchPinnedStatusUseCase,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val notesRepository: NotesRepository,
+    @param:ApplicationContext private val context: Context
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val _state = MutableStateFlow(NotesScreenState())
     val state = _state.asStateFlow()
 
     init {
-        settingsRepository.folderUri.onEach { uri ->
-            _state.update { it.copy(folderUri = uri)
+        settingsRepository.folderUri
+            .flatMapLatest { uriString ->
+                if (uriString == null) flowOf(Unit)
+                else callbackFlow {
+                    val observer = object : ContentObserver(null) {
+                        override fun onChange(selfChange: Boolean) {
+                            trySend(Unit)
+                        }
+                    }
+                    val uri = uriString.toUri()
+
+                    runCatching {
+                        val observerUri = if (DocumentsContract.isTreeUri(uri)) {
+                            val documentId = DocumentsContract.getTreeDocumentId(uri)
+                            DocumentsContract.buildChildDocumentsUriUsingTree(uri, documentId)
+                        } else {
+                            uri
+                        }
+                        context.contentResolver.registerContentObserver(observerUri, true, observer)
+                    }
+
+                    trySend(Unit)
+
+                    awaitClose {
+                        context.contentResolver.unregisterContentObserver(observer)
+                    }
+                }
             }
+            .onEach {
+                // При каждом событии от обсервера запускаем синхронизацию
+                notesRepository.syncNotesFromFolder()
+            }
+            .launchIn(viewModelScope)
+
+        settingsRepository.folderUri.onEach { uri ->
+            _state.update { it.copy(folderUri = uri) }
         }.launchIn(viewModelScope)
     }
 
@@ -98,9 +142,10 @@ class NotesViewModel @Inject constructor(
     fun saveFolderUri(uri: Uri) {
         viewModelScope.launch {
             settingsRepository.saveFolderUri(uri.toString())
+            notesRepository.syncNotesFromFolder()
         }
     }
-    
+
     fun processCommand(command: NotesCommand) {
         viewModelScope.launch {
             when (command) {
@@ -115,6 +160,10 @@ class NotesViewModel @Inject constructor(
                 is NotesCommand.SaveSelectedFolder -> {
                     saveFolderUri(uri = command.uri)
                 }
+
+                is NotesCommand.SyncNotes -> {
+                    notesRepository.syncNotesFromFolder()
+                }
             }
         }
     }
@@ -124,6 +173,7 @@ sealed interface NotesCommand {
     data class SwitchPinnedStatus(val noteId: Int) : NotesCommand
     data class InputSearchQuery(val query: String) : NotesCommand
     data class SaveSelectedFolder(val uri: Uri) : NotesCommand
+    data object SyncNotes : NotesCommand
 }
 
 data class NotesScreenState(
