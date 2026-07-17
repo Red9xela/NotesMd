@@ -318,17 +318,15 @@ private fun NoteCard(
     onLongClick: (Note) -> Unit,
     onSwipe: (Note) -> Unit
 ) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                onSwipe(note)
-            }
-            true
-        }
-    )
+    val dismissState = rememberSwipeToDismissBoxState()
 
     SwipeToDismissBox(
         state = dismissState,
+        onDismiss = { direction ->
+            if (direction == SwipeToDismissBoxValue.EndToStart) {
+                onSwipe(note)
+            }
+        },
         enableDismissFromStartToEnd = false,
         enableDismissFromEndToStart = true,
         backgroundContent = {

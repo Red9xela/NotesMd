@@ -112,6 +112,7 @@ fun EditScreen(
                 onValueChange = {
                     viewModel.processCommand(EditNoteCommand.InputTitle(it))
                 },
+                readOnly = !state.value.isEditMode,
                 colors = TextFieldDefaults.colors(
                     cursorColor = MaterialTheme.colorScheme.primary,
                     focusedContainerColor = Color.Transparent,

@@ -23,7 +23,7 @@ class EditScreenViewModel @Inject constructor(
 ) : ViewModel() {
     private val noteId = savedStateHandle.get<Int>("note_id") ?: -1
     private val isNewNote: Boolean = noteId == -1
-    private val _state = MutableStateFlow(EditNoteState())
+    private val _state = MutableStateFlow(EditNoteState(isEditMode = isNewNote))
     val state = _state.asStateFlow()
 
     init {
@@ -114,7 +114,7 @@ data class EditNoteState(
     val updatedAt: Long = 0L,
     val isPinned: Boolean = false,
     val isFinished: Boolean = false,
-    val isEditMode: Boolean = true
+    val isEditMode: Boolean = false
 ) {
     val isSaveEnabled: Boolean
         get() = title.isNotBlank() &&
