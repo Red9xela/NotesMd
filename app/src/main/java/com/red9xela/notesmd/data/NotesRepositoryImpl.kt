@@ -20,7 +20,7 @@ class NotesRepositoryImpl @Inject constructor(
 ) : NotesRepository {
 
     override suspend fun deleteNote(id: Int) {
-        val note = getNote(id)
+        val note = notesDao.getNote(id)?: return
 
         val folderUriString = settingsRepository.folderUri.first() ?: return
         val rootFolder = DocumentFile.fromTreeUri(context, folderUriString.toUri())
@@ -34,8 +34,8 @@ class NotesRepositoryImpl @Inject constructor(
         val noteToSave = note.copy(title = safeTitle)
 
         if (note.id != 0) {
-            val oldNote = getNote(note.id)
-            if (oldNote.title != noteToSave.title) {
+            val oldNote = notesDao.getNote(note.id)
+            if (oldNote != null && oldNote.title != noteToSave.title) {
                 val folderUriString = settingsRepository.folderUri.first() ?: ""
                 if (folderUriString.isNotEmpty()) {
                     val rootFolder = DocumentFile.fromTreeUri(context, folderUriString.toUri())
@@ -107,7 +107,8 @@ class NotesRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getNote(noteId: Int): Note {
-        return notesDao.getNote(noteId = noteId).toEntity()
+        return notesDao.getNote(noteId = noteId)?.toEntity() 
+            ?: throw NoSuchElementException("Note with id $noteId not found")
     }
 
     override fun searchNotes(query: String): Flow<List<Note>> {

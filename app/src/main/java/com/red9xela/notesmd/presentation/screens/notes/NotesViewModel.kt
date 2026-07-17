@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import androidx.core.net.toUri
 import android.provider.DocumentsContract
+import com.red9xela.notesmd.domain.DeleteNoteUseCase
 import kotlinx.coroutines.channels.awaitClose
 
 @HiltViewModel
@@ -36,6 +37,7 @@ class NotesViewModel @Inject constructor(
     private val getAllNotesUseCase: GetAllNotesUseCase,
     private val searchNotesUseCase: SearchNotesUseCase,
     private val switchPinnedStatusUseCase: SwitchPinnedStatusUseCase,
+    private val deleteNoteUseCase: DeleteNoteUseCase,
     private val settingsRepository: SettingsRepository,
     private val notesRepository: NotesRepository,
     @param:ApplicationContext private val context: Context
@@ -164,6 +166,10 @@ class NotesViewModel @Inject constructor(
                 is NotesCommand.SyncNotes -> {
                     notesRepository.syncNotesFromFolder()
                 }
+
+                is NotesCommand.DeleteNotes -> {
+                    deleteNoteUseCase(command.noteId)
+                }
             }
         }
     }
@@ -172,6 +178,7 @@ class NotesViewModel @Inject constructor(
 sealed interface NotesCommand {
     data class SwitchPinnedStatus(val noteId: Int) : NotesCommand
     data class InputSearchQuery(val query: String) : NotesCommand
+    data class DeleteNotes(val noteId: Int) : NotesCommand
     data class SaveSelectedFolder(val uri: Uri) : NotesCommand
     data object SyncNotes : NotesCommand
 }

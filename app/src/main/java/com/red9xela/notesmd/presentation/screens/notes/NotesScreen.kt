@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.rounded.Search
@@ -32,13 +34,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -112,7 +118,6 @@ fun NotesScreen(
         val previous30DaysTitle = stringResource(R.string.previous_30_days)
         val olderNotesTitle = stringResource(R.string.older_notes)
 
-
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -146,31 +151,36 @@ fun NotesScreen(
                 title = pinnedTitle,
                 notes = state.pinnedNotes,
                 onNoteClick = onNoteClick,
-                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) }
+                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) },
+                onSwipe = { viewModel.processCommand(NotesCommand.DeleteNotes(it.id)) }
             )
             notesSection(
                 title = todayTitle,
                 notes = state.todayNotes,
                 onNoteClick = onNoteClick,
-                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) }
-            )
+                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) },
+                onSwipe = { viewModel.processCommand(NotesCommand.DeleteNotes(it.id)) })
+
             notesSection(
                 title = previous7DaysTitle,
                 notes = state.previousSevenDays,
                 onNoteClick = onNoteClick,
-                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) }
+                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) },
+                onSwipe = { viewModel.processCommand(NotesCommand.DeleteNotes(it.id)) }
             )
             notesSection(
                 title = previous30DaysTitle,
                 notes = state.previousThirtyDays,
                 onNoteClick = onNoteClick,
-                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) }
+                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) },
+                onSwipe = { viewModel.processCommand(NotesCommand.DeleteNotes(it.id)) }
             )
             notesSection(
                 title = olderNotesTitle,
                 notes = state.olderNotes,
                 onNoteClick = onNoteClick,
-                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) }
+                onLongClick = { viewModel.processCommand(NotesCommand.SwitchPinnedStatus(it.id)) },
+                onSwipe = { viewModel.processCommand(NotesCommand.DeleteNotes(it.id)) }
             )
         }
     }
@@ -180,7 +190,8 @@ private fun LazyListScope.notesSection(
     title: String,
     notes: List<Note>,
     onNoteClick: (Note) -> Unit,
-    onLongClick: (Note) -> Unit
+    onLongClick: (Note) -> Unit,
+    onSwipe: (Note) -> Unit
 ) {
     if (notes.isEmpty()) return
 
@@ -198,7 +209,8 @@ private fun LazyListScope.notesSection(
         NotesGroupCard(
             notes = notes,
             onNoteClick = onNoteClick,
-            onLongClick = onLongClick
+            onLongClick = onLongClick,
+            onSwipe = onSwipe
         )
     }
 }
@@ -304,63 +316,99 @@ private fun NoteCard(
     note: Note,
     onNoteClick: (Note) -> Unit,
     onLongClick: (Note) -> Unit,
+    onSwipe: (Note) -> Unit
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = {
-                    onNoteClick(note)
-                },
-                onLongClick = {
-                    onLongClick(note)
-                }
-            )
-            .padding(16.dp)
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                onSwipe(note)
+            }
+            true
+        }
     )
-    {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                modifier = Modifier.weight(1f),
-                text = note.title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                color = MaterialTheme.colorScheme.onSurface,
-                overflow = TextOverflow.Ellipsis
-            )
 
-            if (note.isPinned) {
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true,
+        backgroundContent = {
+            val color = when (dismissState.dismissDirection) {
+                SwipeToDismissBoxValue.EndToStart -> Color.Red.copy(alpha = 0.8f)
+                else -> Color.Transparent
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color)
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
                 Icon(
-                    imageVector = Icons.Filled.PushPin,
-                    contentDescription = stringResource(R.string.pin_icon),
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = Color.White
                 )
             }
         }
+    ) {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .combinedClickable(
+                    onClick = {
+                        onNoteClick(note)
+                    },
+                    onLongClick = {
+                        onLongClick(note)
+                    }
+                )
+                .padding(16.dp)
+        )
+        {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    modifier = Modifier.weight(1f),
+                    text = note.title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-        ) {
-            Text(
-                text = DateFormatter.formatDateToString(note.updatedAt),
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.padding(horizontal = 8.dp))
-            Text(
-                text = note.markdownContent,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+                if (note.isPinned) {
+                    Icon(
+                        imageVector = Icons.Filled.PushPin,
+                        contentDescription = stringResource(R.string.pin_icon),
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+            ) {
+                Text(
+                    text = DateFormatter.formatDateToString(note.updatedAt),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.padding(horizontal = 8.dp))
+                Text(
+                    text = note.markdownContent,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
@@ -371,25 +419,28 @@ fun NotesGroupCard(
     notes: List<Note>,
     onNoteClick: (Note) -> Unit,
     onLongClick: (Note) -> Unit,
+    onSwipe: (Note) -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface)
     ) {
         notes.forEachIndexed { index, note ->
-            NoteCard(
-                note = note,
-                onNoteClick = onNoteClick,
-                onLongClick = onLongClick
-            )
-            if (index < notes.lastIndex) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp),
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant
+            key(note.id) {
+                NoteCard(
+                    note = note,
+                    onNoteClick = onNoteClick,
+                    onLongClick = onLongClick,
+                    onSwipe = onSwipe
                 )
+                if (index < notes.lastIndex) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                }
             }
         }
     }
