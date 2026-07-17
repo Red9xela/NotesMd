@@ -15,4 +15,6 @@ interface NotesRepository {
     fun searchNotes(query: String): Flow<List<Note>>
 
     suspend fun switchPinnedStatus(noteId: Int)
+
+    suspend fun syncNotesFromFolder ()
 }

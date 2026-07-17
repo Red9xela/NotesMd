@@ -1,11 +1,17 @@
 package com.red9xela.notesmd.di
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import com.red9xela.notesmd.data.NotesDao
 import com.red9xela.notesmd.data.NotesDatabase
 import com.red9xela.notesmd.data.NotesRepositoryImpl
+import com.red9xela.notesmd.data.SettingsRepositoryImpl
 import com.red9xela.notesmd.domain.NotesRepository
+import com.red9xela.notesmd.domain.SettingsRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -17,6 +23,12 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 interface DataModule {
+
+    @Singleton
+    @Binds
+    fun bindSettingsRepository(
+        impl: SettingsRepositoryImpl
+    ): SettingsRepository
 
     @Singleton
     @Binds
@@ -37,6 +49,14 @@ interface DataModule {
             ).fallbackToDestructiveMigration(dropAllTables = true).build()
         }
 
+        @Singleton
+        @Provides
+        fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> {
+            return PreferenceDataStoreFactory.create(
+                produceFile = { context.preferencesDataStoreFile("settings") }
+            )
+        }
+        
         @Singleton
         @Provides
         fun providesNotesDao(database: NotesDatabase): NotesDao {

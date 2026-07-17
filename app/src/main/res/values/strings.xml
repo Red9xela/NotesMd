@@ -12,4 +12,7 @@
     <string name="older_notes">Older 30 days</string>
     <string name="pinned">Pinned</string>
     <string name="pin_icon">Pin icon</string>
+    <string name="where_should_you_keep_your_notes">Where should you keep your notes?</string>
+    <string name="select_the_folder_on_your_device_where_your_markdown_files_are_or_will_be_located">Select the folder on your device where your Markdown files are or will be located.</string>
+    <string name="choose_folder">Choose folder</string>
 </resources>
